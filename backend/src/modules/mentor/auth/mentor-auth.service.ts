@@ -10,8 +10,83 @@ import { REDIS_KEYS } from '../../../shared/constants/redis.keys';
 import { parseExpiryToSeconds } from '../../../shared/utils/expiry.util';
 import { REFRESH_TOKEN_EXPIRY } from '../../../shared/constants/token.constants';
 import { verifyRefreshToken } from '../../auth/tokens/refresh-token';
+import { ActivateMentorInput } from '../../admin/mentor-management/types/activate-mentor.input.type';
+import { adminRepository } from '../../admin/admin-mentor.repository';
 
 export class MentorAuthService {
+
+  async activateMentor(input: ActivateMentorInput) {
+    const { token, password, confirmPassword } = input;
+
+    if (password !== confirmPassword) {
+      throw new AppError(
+        'Passwords do not match',
+        STATUS_CODES.BAD_REQUEST
+      );
+    }
+
+    if (password.length < 8) {
+      throw new AppError(
+        'Password must be at least 8 characters',
+        STATUS_CODES.BAD_REQUEST
+      );
+    }
+
+    const email = await CacheService.get<string>(
+      REDIS_KEYS.MENTOR_INVITE(token)
+    );
+
+    if (!email) {
+      throw new AppError(
+        'Invalid or Expired Invite Link',
+        STATUS_CODES.UNAUTHORIZED
+      );
+    }
+
+    const latestTokenForEmail = await CacheService.get<string>(
+      REDIS_KEYS.MENTOR_INVITE_BY_EMAIL(email)
+    );
+
+    if (!latestTokenForEmail || latestTokenForEmail !== token) {
+      throw new AppError(
+        'Invalid or Expired Invite Link',
+        STATUS_CODES.UNAUTHORIZED
+      );
+    }
+
+    const mentor = await adminRepository.findUserByEmail(email);
+
+    if (!mentor) {
+      throw new AppError(
+        'Mentor Account not Found',
+        STATUS_CODES.NOT_FOUND
+      );
+    }
+
+    if (mentor.mentorStatus === 'DISABLED') {
+      throw new AppError(
+        'Mentor disabled by admin',
+        STATUS_CODES.FORBIDDEN
+      );
+    }
+
+    if (mentor.mentorStatus !== 'INVITED') {
+      throw new AppError(
+        'Invalid mentor state',
+        STATUS_CODES.CONFLICT
+      );
+    }
+
+    const hashedPassword = await passwordService.hash(password);
+
+    await adminRepository.activateMentor({
+      userId: mentor.id,
+      hashedPassword,
+    });
+
+    await CacheService.del(REDIS_KEYS.MENTOR_INVITE(token));
+    await CacheService.del(REDIS_KEYS.MENTOR_INVITE_BY_EMAIL(email));
+  }
 
   async login(input: MentorLoginInput) {
     const { email, password } = input;
@@ -29,6 +104,13 @@ export class MentorAuthService {
     if (!mentor.isEmailVerified) {
       throw new AppError(
         'Mentor account not activated',
+        STATUS_CODES.FORBIDDEN
+      );
+    }
+
+    if (mentor.mentorStatus !== 'ACTIVE') {
+      throw new AppError(
+        'Account disabled. Contact admin.',
         STATUS_CODES.FORBIDDEN
       );
     }

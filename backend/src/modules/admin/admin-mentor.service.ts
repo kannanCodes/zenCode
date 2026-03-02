@@ -1,18 +1,54 @@
 import crypto from 'crypto';
 import { EmailService } from '../../shared/email/email.service';
-import { CreateMentorInput } from './mentor/types/create-mentor.types';
+import { CreateMentorInput } from './mentor-management/types/create-mentor.types';
 import { adminRepository } from './admin-mentor.repository';
 import { AppError } from '../../shared/utils/AppError';
 import { STATUS_CODES } from '../../shared/constants/status';
 import { CacheService } from '../../shared/cache/cache.service';
 import { REDIS_KEYS } from '../../shared/constants/redis.keys';
 import { EXPIRY_TIMES } from '../../shared/constants/expiry.constants';
-import { ActivateMentorInput } from './mentor/types/activate-mentor.input.type';
-import { passwordService } from '../../shared/utils/password.util';
+
 
 
 export class AdminMentorService {
      private _emailService = new EmailService();
+
+     private async _issueInviteForEmail(input: {
+          email: string;
+          fullName: string;
+     }) {
+          const { email, fullName } = input;
+
+          const inviteToken = crypto.randomUUID();
+
+          const emailKey = REDIS_KEYS.MENTOR_INVITE_BY_EMAIL(email);
+          const existingToken = await CacheService.get<string>(emailKey);
+
+          if (existingToken) {
+               await CacheService.del(REDIS_KEYS.MENTOR_INVITE(existingToken));
+          }
+
+          await CacheService.set(
+               REDIS_KEYS.MENTOR_INVITE(inviteToken),
+               email,
+               EXPIRY_TIMES.MENTOR_INVITE.SECONDS
+          );
+          await CacheService.set(
+               emailKey,
+               inviteToken,
+               EXPIRY_TIMES.MENTOR_INVITE.SECONDS
+          );
+
+          const inviteLink = `${process.env.FRONTEND_URL}/mentor/activate?token=${inviteToken}`;
+
+          await this._emailService.sendMentorSetupLink(
+               {
+                    email,
+                    inviteLink,
+                    fullName
+               }
+          );
+     }
 
      async createMentor(input: {
           adminId: string;
@@ -28,83 +64,114 @@ export class AdminMentorService {
                );
           }
 
-          const inviteToken = crypto.randomUUID();
-
-          await CacheService.set(
-               REDIS_KEYS.MENTOR_INVITE(inviteToken),
-               data.email,
-               EXPIRY_TIMES.MENTOR_INVITE.SECONDS
-          );
-
           await adminRepository.createMentor({
                data,
                createdByAdminId: adminId,
           });
 
-          const inviteLink = `${process.env.FRONTEND_URL}/mentor/activate?token=${inviteToken}`;
-
-          await this._emailService.sendMentorSetupLink(
-               {
-                    email: data.email,
-                    inviteLink,
-                    fullName: data.fullName
-               }
-          )
+          await this._issueInviteForEmail({
+               email: data.email,
+               fullName: data.fullName,
+          });
      }
 
 
-     async activateMentor(input: ActivateMentorInput) {
-          const { token, password, confirmPassword } = input;
+    async updateMentorStatus(input: {
+          mentorId: string;
+          status: 'ACTIVE' | 'DISABLED';
+          adminId: string;
+     }) {
+          const { mentorId, status, adminId } = input;
 
-          if (password !== confirmPassword) {
+          const mentor = await adminRepository.findById(mentorId);
+
+          if (!mentor || mentor.role !== 'mentor') {
                throw new AppError(
-                    'Passwords do not match',
-                    STATUS_CODES.BAD_REQUEST
-               )
-          }
-          if (password.length < 8) {
-               throw new AppError(
-                    'Password must be at least 8 characters',
-                    STATUS_CODES.BAD_REQUEST
-               );
-          }
-
-          const email = await CacheService.get<string>(
-               REDIS_KEYS.MENTOR_INVITE(token)
-          );
-
-          if (!email) {
-               throw new AppError(
-                    'Invalid or Expired Invite Link',
-                    STATUS_CODES.UNAUTHORIZED
-               )
-          }
-
-          const mentor = await adminRepository.findUserByEmail(email);
-
-          if (!mentor) {
-               throw new AppError(
-                    'Mentor Account not Found',
+                    'Mentor not found',
                     STATUS_CODES.NOT_FOUND
-               )
-          }
-
-          if (mentor.isEmailVerified) {
-               throw new AppError(
-                    'Account already activated',
-                    STATUS_CODES.CONFLICT
                );
           }
 
-          const hashedPassword = await passwordService.hash(password);
+          if (!['ACTIVE', 'DISABLED'].includes(status)) {
+               throw new AppError(
+                    'Invalid status value',
+                    STATUS_CODES.BAD_REQUEST
+               );
+          }
 
-          await adminRepository.activateMentor({
-               userId: mentor.id,
-               hashedPassword,
+          const currentStatus = mentor.mentorStatus;
+
+          if (currentStatus === 'INVITED' && status === 'DISABLED') {
+               throw new AppError(
+                    'Cannot disable invited mentor',
+                    STATUS_CODES.BAD_REQUEST
+               );
+          }
+
+          if (currentStatus === 'ACTIVE' && status === 'ACTIVE') {
+               return;
+          }
+
+          if (currentStatus === 'DISABLED' && status === 'DISABLED') {
+               return;
+          }
+
+          await adminRepository.updateMentorStatus({
+               userId: mentorId,
+               status,
+               adminId,
           });
-          await CacheService.del(
-               REDIS_KEYS.MENTOR_INVITE(token)
-          );
+     }
+
+     async listMentors(query: any) {
+          const page = Math.max(1, Number(query.page) || 1);
+          const limit = Math.min(50, Number(query.limit) || 10);
+
+          return adminRepository.findMentorsWithFilters({
+               page,
+               limit,
+               status: query.status,
+               experienceLevel: query.experienceLevel,
+               isBlocked: typeof query.isBlocked === 'string'
+                    ? query.isBlocked === 'true'
+                    : undefined,
+               expertise: query.expertise,
+               search: query.search,
+               sortBy: query.sortBy,
+               sortOrder: query.sortOrder,
+          });
+     }
+
+     async resendMentorInvite(input: { mentorId: string }) {
+          const { mentorId } = input;
+
+          const mentor = await adminRepository.findById(mentorId);
+
+          if (!mentor || mentor.role !== 'mentor') {
+               throw new AppError(
+                    'Mentor not found',
+                    STATUS_CODES.NOT_FOUND
+               );
+          }
+
+          if (mentor.mentorStatus === 'ACTIVE') {
+               throw new AppError(
+                    'Cannot resend invite for active mentor',
+                    STATUS_CODES.BAD_REQUEST
+               );
+          }
+
+          if (mentor.mentorStatus === 'DISABLED') {
+               throw new AppError(
+                    'Mentor disabled by admin',
+                    STATUS_CODES.BAD_REQUEST
+               );
+          }
+
+          await this._issueInviteForEmail({
+               email: mentor.email,
+               fullName: mentor.fullName,
+          });
      }
 }
 

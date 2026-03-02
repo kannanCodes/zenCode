@@ -17,9 +17,15 @@ export interface IUser extends Document {
   lastActiveDate?: Date;
   googleId?: string;
   isEmailVerified: boolean;
+  mentorStatus?: 'INVITED' | 'ACTIVE' | 'DISABLED';
   expertise?: string[];
   experienceLevel?: 'junior' | 'mid' | 'senior';
   createdByAdminId?: mongoose.Types.ObjectId;
+  invitedAt?: Date;
+  activatedAt?: Date;
+  disabledAt?: Date;
+  lastStatusChangedAt?: Date;
+  lastStatusChangedByAdminId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -79,7 +85,27 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: ['junior', 'mid', 'senior'],
     },
-
+    mentorStatus: {
+      type: String,
+      enum: ['INVITED', 'ACTIVE', 'DISABLED'],
+      default: 'INVITED',
+    },
+    invitedAt: {
+      type: Date,
+    },
+    activatedAt: {
+      type: Date,
+    },
+    disabledAt: {
+      type: Date,
+    },
+    lastStatusChangedAt: {
+      type: Date,
+    },
+    lastStatusChangedByAdminId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
     createdByAdminId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -91,5 +117,12 @@ const userSchema = new Schema<IUser>(
 );
 
 userSchema.index({ role: 1, isBlocked: 1 });
+userSchema.index({
+  role: 1,
+  mentorStatus: 1,
+  experienceLevel: 1,
+  isBlocked: 1,
+  createdAt: -1,
+});
 
 export default mongoose.model<IUser>('User', userSchema);

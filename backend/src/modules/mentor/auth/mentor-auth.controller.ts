@@ -10,6 +10,19 @@ export class MentorAuthController {
     private readonly _mentorAuthService: MentorAuthService
   ) {}
 
+  async activate(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this._mentorAuthService.activateMentor(req.body);
+
+      sendSuccess(res, {
+        statusCode: STATUS_CODES.OK,
+        message: 'Mentor account activated successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async login(req: Request, res: Response, next: NextFunction) {
     try {
       const { accessToken, refreshToken } =
