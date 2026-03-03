@@ -80,7 +80,7 @@ const userSchema = new Schema<IUser>(
     },
     expertise: {
       type: [String],
-      default: [],
+      default: undefined, // Prevent schema pollution for non-mentors
     },
 
     experienceLevel: {
@@ -90,7 +90,7 @@ const userSchema = new Schema<IUser>(
     mentorStatus: {
       type: String,
       enum: ['INVITED', 'ACTIVE', 'DISABLED'],
-      default: 'INVITED',
+      required: false,
     },
     invitedAt: {
       type: Date,

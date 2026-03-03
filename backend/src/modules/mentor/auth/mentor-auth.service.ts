@@ -12,6 +12,7 @@ import { REFRESH_TOKEN_EXPIRY } from '../../../shared/constants/token.constants'
 import { verifyRefreshToken } from '../../auth/tokens/refresh-token';
 import { ActivateMentorInput } from '../../admin/mentor-management/types/activate-mentor.input.type';
 import { adminRepository } from '../../admin/mentor-management/admin-mentor.repository';
+import { UserRole } from '../../../shared/constants/roles';
 
 export class MentorAuthService {
 
@@ -60,6 +61,13 @@ export class MentorAuthService {
       throw new AppError(
         'Mentor Account not Found',
         STATUS_CODES.NOT_FOUND
+      );
+    }
+
+    if (mentor.role !== UserRole.MENTOR) {
+      throw new AppError(
+        'Invalid mentor operation',
+        STATUS_CODES.BAD_REQUEST
       );
     }
 

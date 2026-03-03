@@ -7,6 +7,7 @@ import { STATUS_CODES } from '../../../shared/constants/status';
 import { CacheService } from '../../../shared/cache/cache.service';
 import { REDIS_KEYS } from '../../../shared/constants/redis.keys';
 import { EXPIRY_TIMES } from '../../../shared/constants/expiry.constants';
+import { UserRole } from '../../../shared/constants/roles';
 
 
 
@@ -85,7 +86,21 @@ export class AdminMentorService {
 
           const mentor = await adminRepository.findById(mentorId);
 
-          if (!mentor || mentor.role !== 'mentor') {
+          if (!mentor) {
+               throw new AppError(
+                    'Mentor not found',
+                    STATUS_CODES.NOT_FOUND
+               );
+          }
+
+          if (mentor.role !== UserRole.MENTOR) {
+               throw new AppError(
+                    'Invalid mentor operation',
+                    STATUS_CODES.BAD_REQUEST
+               );
+          }
+
+          if (!mentor.mentorStatus) {
                throw new AppError(
                     'Mentor not found',
                     STATUS_CODES.NOT_FOUND
@@ -147,7 +162,21 @@ export class AdminMentorService {
 
           const mentor = await adminRepository.findById(mentorId);
 
-          if (!mentor || mentor.role !== 'mentor') {
+          if (!mentor) {
+               throw new AppError(
+                    'Mentor not found',
+                    STATUS_CODES.NOT_FOUND
+               );
+          }
+
+          if (mentor.role !== UserRole.MENTOR) {
+               throw new AppError(
+                    'Invalid mentor operation',
+                    STATUS_CODES.BAD_REQUEST
+               );
+          }
+
+          if (!mentor.mentorStatus) {
                throw new AppError(
                     'Mentor not found',
                     STATUS_CODES.NOT_FOUND
