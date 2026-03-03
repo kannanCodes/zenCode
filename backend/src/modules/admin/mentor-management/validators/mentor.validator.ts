@@ -1,24 +1,22 @@
-import Joi from 'joi';
+import { z } from 'zod';
 
-export const createMentorSchema = Joi.object({
-  fullName: Joi.string().trim().min(3).required(),
-  email: Joi.string().email().required(),
-  expertise: Joi.array().items(Joi.string().trim()).min(1).required(),
-  experienceLevel: Joi.string()
-    .valid('junior', 'mid', 'senior')
-    .required(),
+export const createMentorSchema = z.object({
+  fullName: z.string().trim().min(3),
+  email: z.string().email(),
+  expertise: z.array(z.string().trim()).min(1),
+  experienceLevel: z.enum(['junior', 'mid', 'senior']),
 });
 
-export const listMentorsQuerySchema = Joi.object({
-  page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(50).default(10),
-  status: Joi.string().valid('INVITED', 'ACTIVE', 'DISABLED'),
-  experienceLevel: Joi.string().valid('junior', 'mid', 'senior'),
-  isBlocked: Joi.string().valid('true', 'false'),
-  expertise: Joi.string().trim(),
-  search: Joi.string().trim().max(100),
-  sortBy: Joi.string()
-    .valid('createdAt', 'invitedAt', 'activatedAt', 'experienceLevel', 'mentorStatus')
+export const listMentorsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+  status: z.enum(['INVITED', 'ACTIVE', 'DISABLED']).optional(),
+  experienceLevel: z.enum(['junior', 'mid', 'senior']).optional(),
+  isBlocked: z.enum(['true', 'false']).optional(),
+  expertise: z.string().trim().optional(),
+  search: z.string().trim().max(100).optional(),
+  sortBy: z
+    .enum(['createdAt', 'invitedAt', 'activatedAt', 'experienceLevel', 'mentorStatus'])
     .default('createdAt'),
-  sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

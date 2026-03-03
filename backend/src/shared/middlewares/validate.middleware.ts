@@ -1,40 +1,34 @@
 import { Request, Response, NextFunction } from 'express';
-import Joi from 'joi';
+import { ZodSchema, ZodError } from 'zod';
 import { AppError } from '../utils/AppError';
 import { STATUS_CODES } from '../constants/status';
 
-export const validateRequest = (schema: Joi.ObjectSchema) => {
+export const validateRequest = (schema: ZodSchema) => {
      return (req: Request, res: Response, next: NextFunction) => {
-          const { error } = schema.validate(req.body, {
-               abortEarly: false,
-               stripUnknown: true,
-          });
+          const result = schema.safeParse(req.body);
 
-          if (error) {
-               const message = error.details.map((detail) => detail.message).join(', ');
+          if (!result.success) {
+               const message = result.error.issues.map((e: { message: string }) => e.message).join(', ');
                return next(new AppError(message, STATUS_CODES.BAD_REQUEST));
           }
 
+          req.body = result.data;
           next();
      };
 };
 
-export const validateQuery = (schema: Joi.ObjectSchema) => {
+export const validateQuery = (schema: ZodSchema) => {
      return (req: Request, res: Response, next: NextFunction) => {
-          const { error, value } = schema.validate(req.query, {
-               abortEarly: false,
-               stripUnknown: true,
-          });
+          const result = schema.safeParse(req.query);
 
-          if (error) {
-               const message = error.details.map((detail) => detail.message).join(', ');
+          if (!result.success) {
+               const message = result.error.issues.map((e: { message: string }) => e.message).join(', ');
                return next(new AppError(message, STATUS_CODES.BAD_REQUEST));
           }
 
-          // Express exposes req.query via a getter; assign to a separate field
-          // so controllers/services can rely on sanitized defaults safely.
-          (req as any).validatedQuery = value;
-
+          // Assign sanitized and defaulted query values to a separate field
+          // so controllers/services can rely on them safely.
+          (req as any).validatedQuery = result.data;
           next();
      };
 };

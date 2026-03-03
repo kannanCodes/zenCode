@@ -26,6 +26,8 @@ export interface IUser extends Document {
   disabledAt?: Date;
   lastStatusChangedAt?: Date;
   lastStatusChangedByAdminId?: mongoose.Types.ObjectId;
+  blockedAt?: Date;
+  blockedByAdminId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -107,6 +109,11 @@ const userSchema = new Schema<IUser>(
       ref: 'User',
     },
     createdByAdminId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    blockedAt: Date,
+    blockedByAdminId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
     },

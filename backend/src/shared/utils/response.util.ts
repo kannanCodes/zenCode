@@ -8,18 +8,21 @@ export const sendSuccess = <T>(
     statusCode?: number;
     message?: string;
     data?: T;
+    meta?: Record<string, unknown>;
   },
 ): void => {
   const {
     statusCode = STATUS_CODES.OK,
     message,
     data,
+    meta,
   } = options;
 
   res.status(statusCode).json({
     success: true,
     message,
     data,
+    ...(meta !== undefined && { meta }),
   });
 };
 

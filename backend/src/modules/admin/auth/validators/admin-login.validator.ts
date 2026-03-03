@@ -1,6 +1,6 @@
-import Joi from 'joi';
+import { z } from 'zod';
 
-export const adminLoginSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().required(),
+export const adminLoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
 });
