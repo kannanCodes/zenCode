@@ -32,6 +32,7 @@ const ProblemListPage = () => {
     search: '',
     difficulty: '' as '' | 'easy' | 'medium' | 'hard',
     isActive: undefined as boolean | undefined,
+    isPremium: undefined as boolean | undefined,
   });
 
   useEffect(() => {
@@ -46,6 +47,7 @@ const ProblemListPage = () => {
           ...(filters.search && { search: filters.search }),
           ...(filters.difficulty && { difficulty: filters.difficulty }),
           ...(filters.isActive !== undefined && { isActive: filters.isActive }),
+          ...(filters.isPremium !== undefined && { isPremium: filters.isPremium }),
         });
 
         if (mounted) {
@@ -87,15 +89,16 @@ const ProblemListPage = () => {
     };
   }, [filters, pagination.page, pagination.limit, navigate]);
 
-  const handleDelete = async (problemId: string) => {
+  const handleToggleActive = async (problemId: string, currentStatus: boolean) => {
+    const action = currentStatus ? 'deactivate' : 'activate';
     const result = await Swal.fire({
       title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+      text: `Do you want to ${action} this problem?`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, delete it!',
+      confirmButtonColor: currentStatus ? '#d33' : '#3085d6',
+      cancelButtonColor: '#2a2d3a',
+      confirmButtonText: `Yes, ${action} it!`,
       background: '#1a1a1a',
       color: '#fff',
     });
@@ -105,8 +108,8 @@ const ProblemListPage = () => {
     }
 
     try {
-      await adminService.deleteProblem(problemId);
-      showSuccess('Problem deleted successfully');
+      await adminService.updateProblem(problemId, { isActive: !currentStatus });
+      showSuccess(`Problem ${currentStatus ? 'deactivated' : 'activated'} successfully`);
       
       const response = await adminService.listProblems({
         page: pagination.page,
@@ -114,6 +117,7 @@ const ProblemListPage = () => {
         ...(filters.search && { search: filters.search }),
         ...(filters.difficulty && { difficulty: filters.difficulty }),
         ...(filters.isActive !== undefined && { isActive: filters.isActive }),
+        ...(filters.isPremium !== undefined && { isPremium: filters.isPremium }),
       });
       setProblems(response.data || []);
     } catch (error: unknown) {
@@ -123,7 +127,7 @@ const ProblemListPage = () => {
           const message =
             typeof data === 'object' && data !== null && 'message' in data
               ? String((data as { message?: unknown }).message || '')
-              : 'Failed to delete problem';
+              : `Failed to ${action} problem`;
           showError(message);
         }
       }
@@ -223,6 +227,21 @@ const ProblemListPage = () => {
               <option value="">Status: All</option>
               <option value="true">Active</option>
               <option value="false">Disabled</option>
+            </select>
+
+            <select
+              value={filters.isPremium === undefined ? '' : filters.isPremium.toString()}
+              onChange={(e) =>
+                setFilters({
+                  ...filters,
+                  isPremium: e.target.value === '' ? undefined : e.target.value === 'true',
+                })
+              }
+              className="h-12 px-4 rounded-lg bg-[#1a1a1a] border border-[#2a2d3a] text-white focus:border-[var(--color-primary)] focus:ring-0 focus:outline-none transition-all cursor-pointer"
+            >
+              <option value="">Type: All</option>
+              <option value="false">Free</option>
+              <option value="true">Premium</option>
             </select>
           </div>
         </div>
@@ -340,13 +359,23 @@ const ProblemListPage = () => {
                             </svg>
                           </button>
                           <button
-                            onClick={() => handleDelete(problem._id)}
-                            className="p-2 rounded-lg border border-red-500 text-red-500 hover:bg-red-500/10 transition-all"
-                            title="Delete"
+                            onClick={() => handleToggleActive(problem._id, problem.isActive)}
+                            className={`p-2 rounded-lg border transition-all ${
+                              problem.isActive
+                                ? 'border-red-500 text-red-500 hover:bg-red-500/10'
+                                : 'border-green-500 text-green-500 hover:bg-green-500/10'
+                            }`}
+                            title={problem.isActive ? 'Deactivate' : 'Activate'}
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            {problem.isActive ? (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </td>
