@@ -7,18 +7,10 @@ export interface ExecuteCodeInput {
      problemId?: string;
      testCases?: any[];
      functionSignature?: any;
+     isSubmission?: boolean;
 }
 
-export interface Judge0Submission {
-     source_code: string;
-     language_id: number;
-     stdin?: string;
-     expected_output?: string;
-     cpu_time_limit?: number;
-     memory_limit?: number;
-}
-
-export interface Judge0Response {
+export interface ExecutionResult {
      stdout: string | null;
      stderr: string | null;
      status: {

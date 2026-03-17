@@ -11,6 +11,7 @@ import mentorAuthRouter from './modules/mentor/auth/mentor-auth.routes';
 import adminUserRouter from './modules/admin/user-management/admin-user.routes';
 import problemRoutes from './modules/problem/problem.routes';
 import compilerRoutes from './modules/compiler/compiler.routes';
+import submissionRoutes from "./modules/submission/submission.routes";
 
 
 app.use(cors({
@@ -35,6 +36,7 @@ app.use('/api/mentor/auth', mentorAuthRouter);
 app.use('/api/admin', adminUserRouter);
 app.use('/api/problems', problemRoutes);
 app.use('/api/compiler', compilerRoutes);
+app.use("/api/submissions", submissionRoutes);
 
 app.use(errorHandler)
 

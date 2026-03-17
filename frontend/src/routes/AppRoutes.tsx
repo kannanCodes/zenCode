@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from '../features/user/pages/LandingPage';
 import ProblemListPage from '../features/candidate/pages/ProblemListPage';
 import ProblemDetailPage from '../features/candidate/pages/ProblemDetailPage';
+import SubmissionsPage from '../features/candidate/pages/SubmissionsPage';
 import RegisterPage from '../features/user/pages/RegisterPage';
 import OTPVerificationPage from '../features/user/pages/OTPVerificationPage';
 import LoginPage from '../features/user/pages/LoginPage';
@@ -54,6 +55,15 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Navigate to="/problems" replace />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/submissions"
+        element={
+          <ProtectedRoute>
+            <SubmissionsPage />
           </ProtectedRoute>
         }
       />

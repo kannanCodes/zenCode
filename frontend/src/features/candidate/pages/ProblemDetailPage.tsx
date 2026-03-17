@@ -11,6 +11,7 @@ import TestCasePanel from '../components/TestCasePanel';
 import ConsoleOutput from '../components/ConsoleOutput';
 import TestResultPanel from '../components/TestResultPanel';
 import axios from 'axios';
+import { submissionService } from '../services/submission.service';
 
 
 
@@ -49,6 +50,7 @@ const ProblemDetailPage = () => {
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
   const [executionError, setExecutionError] = useState<string>('');
   const [activeBottomTab, setActiveBottomTab] = useState<'testcases' | 'results' | 'console'>('testcases');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Compute available languages dynamically for render
   const availableLanguages = problem
@@ -170,7 +172,59 @@ const ProblemDetailPage = () => {
   };
 
   const handleSubmit = async () => {
-    showError('Submission feature coming soon!');
+    if (!code.trim()) {
+      showError('Please write some code first');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setExecutionError('');
+    setExecutionResult(null);
+    setActiveBottomTab('results');
+
+    try {
+      const submission = await submissionService.submit({
+        problemId: id!,
+        language: selectedLanguage,
+        sourceCode: code,
+      });
+
+      // Transform submission to ExecutionResult format
+      const result: ExecutionResult = {
+        stdout: submission.stdout || null,
+        stderr: submission.stderr || null,
+        compile_output: submission.compile_output || null,
+        status: {
+          id: submission.status === 'accepted' ? 3 : 4,
+          description: submission.status,
+        },
+        time: submission.time || null,
+        memory: submission.memory || null,
+        testResults: submission.testResults || [],
+      };
+
+      setExecutionResult(result);
+
+      if (submission.status === 'accepted') {
+        showSuccess('All test cases passed! 🎉');
+      } else if (submission.status === 'compilation_error') {
+        showError('Compilation error');
+      } else if (submission.status === 'runtime_error') {
+        showError('Runtime error');
+      } else if (submission.status === 'wrong_answer') {
+        showError('Some test cases failed');
+      }
+
+      setActiveBottomTab('results');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        setExecutionError(error.response.data.message);
+      } else {
+        setExecutionError('Submission failed. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
@@ -224,10 +278,10 @@ const ProblemDetailPage = () => {
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            disabled={isRunning}
+            disabled={isRunning || isSubmitting}
             className="h-9 px-5 rounded-lg bg-[var(--color-primary)] hover:bg-blue-600 text-white font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit
+            {isSubmitting ? 'Submitting...' : 'Submit'}
           </button>
 
           <span className="text-gray-600">|</span>
