@@ -12,6 +12,7 @@ import adminUserRouter from './modules/admin/user-management/admin-user.routes';
 import problemRoutes from './modules/problem/problem.routes';
 import compilerRoutes from './modules/compiler/compiler.routes';
 import submissionRoutes from "./modules/submission/submission.routes";
+import planRoutes from "./modules/admin/plan/plan.routes";
 
 
 app.use(cors({
@@ -37,7 +38,7 @@ app.use('/api/admin', adminUserRouter);
 app.use('/api/problems', problemRoutes);
 app.use('/api/compiler', compilerRoutes);
 app.use("/api/submissions", submissionRoutes);
-
+app.use("/api/plans", planRoutes);
 app.use(errorHandler)
 
 app.get('/health', (req, res) => {
