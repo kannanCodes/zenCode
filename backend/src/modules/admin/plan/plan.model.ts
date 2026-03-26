@@ -21,6 +21,11 @@ const PlanSchema = new Schema(
                default: 'monthly'
           },
 
+          intervalCount: {
+               type: Number,
+               default: 1
+          },
+
           durationInDays: {
                type: Number,
                required: true,
@@ -43,15 +48,39 @@ const PlanSchema = new Schema(
                default: []
           },
 
+          access: {
+               mentorBooking: { type: Boolean, default: false },
+               premiumProblems: { type: Boolean, default: false },
+               aiHints: { type: Boolean, default: false }
+          },
+
+          stripeProductId: {
+               type: String,
+               required: true
+          },
+
+          stripePriceId: {
+               type: String,
+               required: true
+          },
+
           isActive: {
                type: Boolean,
                default: true
+          },
+
+          isArchived: {
+               type: Boolean,
+               default: false
           }
      },
      { timestamps: true }
 );
 
-PlanSchema.index({ isActive: 1 });
 PlanSchema.index({ name: 1 });
+PlanSchema.index({ isActive: 1 });
+PlanSchema.index({ isArchived: 1 });
+PlanSchema.index({ stripeProductId: 1 });
+PlanSchema.index({ stripePriceId: 1 });
 
 export const Plan = model("Plan", PlanSchema);

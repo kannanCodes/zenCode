@@ -17,8 +17,9 @@ export class PlanService {
                );
           }
 
-          // Calculate durationInDays based on billing cycle
-          const durationInDays = data.billingCycle === 'monthly' ? 30 : 365;
+          // Calculate durationInDays based on billing cycle and interval count
+          const unitDays = data.billingCycle === 'monthly' ? 30 : 365;
+          const durationInDays = unitDays * (data.intervalCount || 1);
 
           return this.planRepo.create({
                ...data,
@@ -33,9 +34,20 @@ export class PlanService {
                throw new AppError('Plan not found', STATUS_CODES.NOT_FOUND);
           }
 
-          // If billing cycle is updated, recalculate duration
-          if (data.billingCycle) {
-               (data as any).durationInDays = data.billingCycle === 'monthly' ? 30 : 365;
+          // Duplicate name check if name is being updated
+          if (data.name && data.name !== plan.name) {
+               const existingPlan = await this.planRepo.findByName(data.name);
+               if (existingPlan) {
+                    throw new AppError('Plan with this name already exists', STATUS_CODES.CONFLICT);
+               }
+          }
+
+          // If billing cycle or intervalCount is updated, recalculate duration
+          if (data.billingCycle || data.intervalCount) {
+               const billingCycle = data.billingCycle || plan.billingCycle;
+               const intervalCount = data.intervalCount !== undefined ? data.intervalCount : plan.intervalCount;
+               const unitDays = billingCycle === 'monthly' ? 30 : 365;
+               (data as any).durationInDays = unitDays * intervalCount;
           }
 
           const updatedPlan = await this.planRepo.updateById(planId, data);

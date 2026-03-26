@@ -8,22 +8,22 @@ export class PlanRepository {
      }
 
      async findByName(name: string) {
-          return Plan.findOne({ name });
+          return Plan.findOne({ name, isArchived: false });
      }
 
      async findById(id: string) {
-          return Plan.findById(id);
+          return Plan.findOne({ _id: id, isArchived: false });
      }
 
      async updateById(id: string, data: UpdatePlanInput) {
-          return Plan.findByIdAndUpdate(id, data, { new: true });
+          return Plan.findOneAndUpdate({ _id: id, isArchived: false }, data, { new: true });
      }
 
      async listActive() {
-          return Plan.find({ isActive: true }).sort({ price: 1 });
+          return Plan.find({ isActive: true, isArchived: false }).sort({ price: 1 });
      }
 
      async listAll() {
-          return Plan.find().sort({ createdAt: -1 });
+          return Plan.find({ isArchived: false }).sort({ createdAt: -1 });
      }
 }
