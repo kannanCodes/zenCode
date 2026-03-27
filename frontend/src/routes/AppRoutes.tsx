@@ -17,6 +17,7 @@ import MentorActivationPage from '../features/mentor/pages/MentorActivationPage'
 import MentorSuccessPage from '../features/mentor/pages/MentorSuccessPage';
 import AdminProblemListPage from '../features/admin/pages/ProblemListPage';
 import ProblemFormPage from '../features/admin/pages/ProblemForm';
+import PlanManagementPage from '../features/admin/pages/PlanManagementPage';
 import ProtectedRoute from '../shared/components/ProtectedRoute';
 import { tokenService } from '../shared/lib/token';
 
@@ -110,6 +111,14 @@ const AppRoutes = () => {
             <ProblemFormPage />
           </ProtectedRoute>
         }
+      />
+      <Route 
+        path="/admin/plan-management" 
+        element={
+          <ProtectedRoute redirectTo="/admin/login">
+            <PlanManagementPage />
+          </ProtectedRoute>
+        } 
       />
 
       {/* Mentor Routes */}
