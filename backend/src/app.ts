@@ -13,6 +13,7 @@ import problemRoutes from './modules/problem/problem.routes';
 import compilerRoutes from './modules/compiler/compiler.routes';
 import submissionRoutes from "./modules/submission/submission.routes";
 import planRoutes from "./modules/admin/plan/plan.routes";
+import paymentRoutes from "./modules/payments/payment.routes";
 
 
 app.use(cors({
@@ -39,6 +40,7 @@ app.use('/api/problems', problemRoutes);
 app.use('/api/compiler', compilerRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/plans", planRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use(errorHandler)
 
 app.get('/health', (req, res) => {

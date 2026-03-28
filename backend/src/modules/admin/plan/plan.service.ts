@@ -3,9 +3,11 @@ import { CreatePlanInput } from "./types/create-plan.input";
 import { UpdatePlanInput } from "./types/update-plan.input";
 import { AppError } from "../../../shared/utils/AppError";
 import { STATUS_CODES } from "../../../shared/constants/status";
+import { StripeService } from "../../payments/stripe.service";
 
 export class PlanService {
      private planRepo = new PlanRepository();
+     private stripeService = new StripeService();
 
      async createPlan(data: CreatePlanInput) {
           const existingPlan = await this.planRepo.findByName(data.name);
@@ -17,13 +19,24 @@ export class PlanService {
                );
           }
 
+          // Create product and price on Stripe first
+          const stripeData = await this.stripeService.createProductAndPrice({
+               name: data.name,
+               description: data.description,
+               price: data.price,
+               billingCycle: data.billingCycle,
+               intervalCount: data.intervalCount || 1,
+          });
+
           // Calculate durationInDays based on billing cycle and interval count
           const unitDays = data.billingCycle === 'monthly' ? 30 : 365;
           const durationInDays = unitDays * (data.intervalCount || 1);
 
           return this.planRepo.create({
                ...data,
-               durationInDays
+               durationInDays,
+               stripeProductId: stripeData.productId,
+               stripePriceId: stripeData.priceId,
           } as any);
      }
 
