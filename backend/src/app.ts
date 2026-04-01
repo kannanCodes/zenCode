@@ -14,6 +14,8 @@ import compilerRoutes from './modules/compiler/compiler.routes';
 import submissionRoutes from "./modules/submission/submission.routes";
 import planRoutes from "./modules/admin/plan/plan.routes";
 import paymentRoutes from "./modules/payments/payment.routes";
+import subscriptionRoutes from "./modules/subscription/subscription.routes";
+import { startSubscriptionCronJobs } from "./jobs/subscription.job";
 
 
 app.use(cors({
@@ -30,6 +32,7 @@ app.use(cookieParser());
 app.use(passport.initialize());
 
 connectDB();
+startSubscriptionCronJobs();
 
 // Routes
 app.use('/api/auth', authRouter);
@@ -41,6 +44,7 @@ app.use('/api/compiler', compilerRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
 app.use(errorHandler)
 
 app.get('/health', (req, res) => {

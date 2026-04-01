@@ -26,4 +26,8 @@ export class PlanRepository {
      async listAll() {
           return Plan.find({ isArchived: false }).sort({ createdAt: -1 });
      }
+
+     async findByStripePriceId(priceId: string) {
+          return Plan.findOne({ stripePriceId: priceId, isArchived: false });
+     }
 }

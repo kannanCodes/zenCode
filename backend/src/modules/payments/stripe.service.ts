@@ -90,4 +90,26 @@ export class StripeService {
       expand: ['subscription', 'customer'],
     });
   }
+
+  // Cancel at period end (not immediate) — user keeps access until billing period ends
+  async cancelStripeSubscription(stripeSubscriptionId: string): Promise<Stripe.Subscription> {
+    return this.stripe.subscriptions.update(stripeSubscriptionId, {
+      cancel_at_period_end: true,
+    });
+  }
+
+  // Upgrade or downgrade plan — Stripe prorates automatically
+  async upgradeSubscription(stripeSubscriptionId: string, newPriceId: string): Promise<Stripe.Subscription> {
+    const subscription = await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
+
+    return this.stripe.subscriptions.update(stripeSubscriptionId, {
+      items: [
+        {
+          id: subscription.items.data[0].id,
+          price: newPriceId,
+        },
+      ],
+      proration_behavior: 'create_prorations',
+    });
+  }
 }
