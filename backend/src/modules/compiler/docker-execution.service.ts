@@ -19,7 +19,7 @@ const DOCKER_IMAGE_MAP: Record<string, { image: string; runtime: string; extensi
   },
 };
 
-export class PistonService {
+export class DockerExecutionService {
   private wrapCode(language: string, sourceCode: string, testCases: any[], functionSignature: any): string {
     if (!testCases || testCases.length === 0 || !functionSignature) {
       return sourceCode;

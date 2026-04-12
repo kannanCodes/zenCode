@@ -37,7 +37,7 @@ export class SubmissionService {
                     isSubmission: true,
                });
 
-                // Poll for result (Piston stores results in memory)
+                // Poll for result (CompilerService stores results in memory)
                 let result;
                 let attempts = 0;
                 const maxAttempts = 10;
